@@ -16,7 +16,7 @@ def hello():
 # load model function 
 def load_model():
     # load model
-    with open('../model/iris-classifier.pkl', 'rb') as file:
+    with open('model/iris-classifier.pkl', 'rb') as file:
         model = pickle.load(file)
     return model
 
