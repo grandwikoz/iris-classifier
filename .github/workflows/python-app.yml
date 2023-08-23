@@ -52,19 +52,18 @@ jobs:
     - name: Deploy to EC 2
       env:
         PATH_FILE: iris-classifier
-        API_SERVICE: backend
-        STREAMLIT_SERVICE_IMAGE: frontend
+        API_SERVICE: frontend
+        STREAMLIT_SERVICE_IMAGE: backend
 
-      run:
+      run: |
         ssh deploy_ec2 "mkdir temp"
         ssh deploy_ec2 "git clone https://github.com/grandwikoz/iris-classifier.git temp"
         ssh deploy_ec2 "rsnyc -a temp/ $PATH_FILE"
         ssh deploy_ec2 "rm -rf temp"
         ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose down"
-        ssh deploy_ec2 "cd $PATH_FILE || sudo docker rmi $API_SERVICE_IMAGE -f || sudo docker rmi $STREAMLIT_SERVICE_IMAGE -f"
+        ssh deploy_ec2 "cd $PATH_FILE || sudo docker rmi $API_SERVICE_IMAGE -f || sudo docker rmi -f"
         ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose build && sudo docker compose -d"
         
-   
       
     # - name: Install dependencies
     #   run: |
