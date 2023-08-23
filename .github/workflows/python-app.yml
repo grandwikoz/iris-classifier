@@ -23,59 +23,40 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-
-  docker-pull-ec2:
-    
+        
+  docker-pull-ec-2:
     needs: build
-    
+
     runs-on: ubuntu-latest
-
     steps:
-    - name: Creating a ssh configuration file
+    - name: Creating SSH Configuration File
       env:
-        SSH_USER: ${{ secrets.SSH_USER }}
-        SSH_KEY: ${{ secrets.KEY }}
-        SSH_HOST: ${{secrets.SSH_HOST }}
-      
-      run: |
-        mkdir -p ~/.ssh/
-        echo "$SSH_KEY" > ~/.ssh/deployment.pem
-        chmod 600 ~/.ssh/deployment.pem
-        cat >> ~/.ssh/config << END
-        Host deploy_ec2
-          Hostname $SSH_HOST
-          User $SSH_USER
-          IdentityFile ~/.ssh/deployment.pem
-          StrictHostKeyChecking no
-        END
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
 
-    - name: Deploy to EC 2
+      run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/deployment.pem
+          chmod 600 ~/.ssh/deployment.pem
+          cat >> ~/.ssh/config <<END
+          Host deploy_ec2
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/deployment.pem
+            StrictHostKeyChecking no
+          END
+    - name: Deploy to EC2
       env:
         PATH_FILE: iris-classifier
-        API_SERVICE: frontend
+        API_SERVICE_IMAGE: frontend
         STREAMLIT_SERVICE_IMAGE: backend
-
       run: |
-        ssh deploy_ec2 "mkdir temp"
-        ssh deploy_ec2 "git clone https://github.com/grandwikoz/iris-classifier.git temp"
-        ssh deploy_ec2 "rsnyc -a temp/ $PATH_FILE"
-        ssh deploy_ec2 "rm -rf temp"
-        ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose down"
-        ssh deploy_ec2 "cd $PATH_FILE || sudo docker rmi $API_SERVICE_IMAGE -f || sudo docker rmi -f"
-        ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose build && sudo docker compose -d"
-        
-      
-    # - name: Install dependencies
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     pip install flake8 pytest
-    #     if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    # - name: Lint with flake8
-    #   run: |
-    #     # stop the build if there are Python syntax errors or undefined names
-    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-    #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    # - name: Test with pytest
-    #   run: |
-    #     pytest
+          ssh deploy_ec2 "mkdir temp"
+          ssh deploy_ec2 "git clone https://github.com/grandwikoz/iris-classifier.git temp"
+          ssh deploy_ec2 "rsync -a temp/ $PATH_FILE"
+          ssh deploy_ec2 "rm -rf temp/"
+          ssh deploy_ec2 "cd $PATH_FILE"
+          ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose down"
+          ssh deploy_ec2 "cd $PATH_FILE || sudo docker rmi $API_SERVICE_IMAGE -f || sudo docker rmi  -f"
+          ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose build && sudo docker compose up -d"
