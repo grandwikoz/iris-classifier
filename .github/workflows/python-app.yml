@@ -33,8 +33,38 @@ jobs:
     steps:
     - name: Creating a ssh configuration file
       env:
-        SSH_USER
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_KEY: ${{ secrets.KEY }}
+        SSH_HOST: ${{secrets.SSH_HOST }}
+      
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_KEY" > /.ssh/deployment.pem
+        chmod 600 ~/.ssh/deployment.pem
+        cat >> ~/.ssh/config << END
+        Host deploy_ec2
+          Hostname $SSH_HOST
+          User $SSH_USER
+          IdentifyFile ~/.ssh/deployment.pem
+          StrictHostKeyChecking no
+        END
 
+    - name: Deploy to EC 2
+      env:
+        PATH_FILE: iris-classifier
+        API_SERVICE: backend
+        STREAMLIT_SERVICE_IMAGE: frontend
+
+      run:
+        ssh deploy_ec2 "mkdir temp"
+        ssh deploy_ec2 "git clone https://github.com/grandwikoz/iris-classifier.git temp"
+        ssh deploy_ec2 "rsnyc -a temp/ $PATH_FILE"
+        ssh deploy_ec2 "rm -rf temp"
+        ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose down"
+        ssh deploy_ec2 "cd $PATH_FILE || sudo docker rmi $API_SERVICE_IMAGE -f || sudo docker rmi $STREAMLIT_SERVICE_IMAGE -f"
+        ssh deploy_ec2 "cd $PATH_FILE && sudo docker compose build && sudo docker compose -d"
+        
+   
       
     # - name: Install dependencies
     #   run: |
